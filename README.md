@@ -24,7 +24,7 @@ Each test case file is structured as follows:
 **Compilation**: `mpic++ -o mpiRecursiveDoubling mpiRecursiveDoubling.cpp`  
 **Execution**: `mpirun -np {num_threads} ./mpiRecursiveDoubling inputs/{input_name}.txt`
 
-### MPI Paramveer Solver
+### MPI Brugnano Solver
 
 **Compilation**: `mpic++ -o mpiBrugnano mpiBrugnano.cpp`  
 **Execution**: `mpirun -np {num_threads} ./mpiBrugnano inputs/{input_name}.txt`
