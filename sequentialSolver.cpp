@@ -66,16 +66,18 @@ int main()
     for (int i = 0; i < N; i++)
         cin >> b[i];
 
+     // Read a (subdiagonal), the subdiagonal starts from row 1
+     a[0] = 0.0;
+     for (int i = 1; i < N; i++)
+         cin >> a[i];
+         
     // Read c (superdiagonal)
     for (int i = 0; i < N - 1; i++)
         cin >> c[i];
     // usually c[N-1] is unused/zero, but set so no initialization error
     c[N-1] = 0.0;
 
-    // Read a (subdiagonal), the subdiagonal starts from row 1
-    a[0] = 0.0;
-    for (int i = 1; i < N; i++)
-        cin >> a[i];
+   
 
     // Read d (RHS vector)
     for (int i = 0; i < N; i++)

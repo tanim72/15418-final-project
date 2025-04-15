@@ -1,17 +1,30 @@
-# 15418-final-project
+# 15418 Final Project
 
-Format of test cases:
-# first number: size of matrix (nxn)
-# second row: main diagonal
-# third row: super diagonal
-# fourth row: subdiagonal
-# fifth row: RHS vector
+This repository contains solvers for tridiagonal matrix systems. The test cases and solvers are organized as described below.
 
+## Test Case Format
 
-Running sequentialSolver:
-Compile: g++ -std=c++11 -o mpiSolver mpiSolver.cpp
-Run: ./sequentialSolver < inputs/{input_name}.txt
+Each test case file is structured as follows:
 
-Running mpiSolver:
-Compile: mpic++ -o mpiSolver mpiSolver.cpp
-Run: mpirun -np {num_threads} ./mpiSolver inputs/{input_name}.txt
+- **First line:** Size of the matrix (n x n)
+- **Second line:** Main diagonal entries
+- **Third line:** Sub-diagonal entries
+- **Fourth line:** Super-diagonal entries
+- **Fifth line:** RHS (Right Hand Side) vector
+
+## Running the Solvers
+
+### Sequential Solver
+
+**Compilation**: `g++ -std=c++11 -o sequentialSolver sequentialSolver.cpp`  
+**Execution**: `./sequentialSolver < inputs/{input_name}.txt`
+
+### MPI Solver (Recursive Doubling)
+
+**Compilation**: `mpic++ -o mpiRecursiveDoubling mpiRecursiveDoubling.cpp`  
+**Execution**: `mpirun -np {num_threads} ./mpiRecursiveDoubling inputs/{input_name}.txt`
+
+### MPI Paramveer Solver
+
+**Compilation**: `mpic++ -o mpiBrugnano mpiBrugnano.cpp`  
+**Execution**: `mpirun -np {num_threads} ./mpiBrugnano inputs/{input_name}.txt`
