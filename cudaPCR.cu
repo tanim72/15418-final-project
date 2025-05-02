@@ -50,14 +50,10 @@ __global__ void pcr_stride_kernel(
         gamma = - ci / bR;
     }
 
-    float anew = (i >= stride)    ? alpha * a_in[base + i - stride] : 0.f;
+    float anew = (i >= stride) ? alpha * a_in[base + i - stride] : 0.f;
     float cnew = (i + stride < N) ? gamma * c_in[base + i + stride] : 0.f;
-    float bnew = bi
-      + (i >= stride    ? alpha * c_in[base + i - stride] : 0.f)
-      + (i + stride < N ? gamma * a_in[base + i + stride] : 0.f);
-    float dnew = di
-      + (i >= stride    ? alpha * d_in[base + i - stride] : 0.f)
-      + (i + stride < N ? gamma * d_in[base + i + stride] : 0.f);
+    float bnew = bi + (i >= stride ? alpha * c_in[base + i - stride] : 0.f) + (i + stride < N ? gamma * a_in[base + i + stride] : 0.f);
+    float dnew = di + (i >= stride    ? alpha * d_in[base + i - stride] : 0.f) + (i + stride < N ? gamma * d_in[base + i + stride] : 0.f);
 
     a_out[base + i] = anew;
     b_out[base + i] = bnew;
@@ -69,7 +65,7 @@ __global__ void final_solve_kernel(
     int N, int M,
     const float* __restrict__ b_in,
     const float* __restrict__ d_in,
-    float*       __restrict__ x_out)
+    float* __restrict__ x_out)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= M * N) return;
