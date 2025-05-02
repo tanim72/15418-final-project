@@ -41,7 +41,6 @@ void modifiedThomasAlgorithm(int m, vector<double>& a, vector<double>& b, vector
         a[i] = a[i] - c[i] * a[i+1];
     }
     
-   
     // unsure if this is the desired result as paper is unclear about the final step
     double r = 1.0 / (1.0 - a[1]*c[0]); // could also be (b[1] - a[1]*c[0]) to avoid NaN
 
@@ -84,7 +83,8 @@ int main(int argc, char* argv[]) {
     const auto init_start = std::chrono::steady_clock::now();
     MPI_Init(&argc, &argv);
     
-    int pid, size;
+    int pid;
+    int size;
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
@@ -152,7 +152,6 @@ int main(int argc, char* argv[]) {
     
     // Broadcast the total size to all processes
     MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
     const auto compute_start = std::chrono::steady_clock::now();
     
     m = N / size;
@@ -186,7 +185,6 @@ int main(int argc, char* argv[]) {
     MPI_Scatterv(global_c.data(), recvcounts, displs, MPI_DOUBLE, local_c.data(), m, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatterv(global_a.data(), recvcounts, displs, MPI_DOUBLE, local_a.data(), m, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatterv(global_d.data(), recvcounts, displs, MPI_DOUBLE, local_d.data(), m, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    
     
     // Step 1: Apply the modified Thomas algorithm to local system
     modifiedThomasAlgorithm(m, local_a, local_b, local_c, local_d);
@@ -247,7 +245,6 @@ int main(int argc, char* argv[]) {
         }
         
         standardThomasSolver(reduced_size, reduced_a, reduced_b, reduced_c, reduced_d);
-        
         reduced_solution = reduced_d;
     }
     
@@ -267,10 +264,8 @@ int main(int argc, char* argv[]) {
     // Gather all solutions back 
     MPI_Gatherv(local_d.data(), m, MPI_DOUBLE, global_x.data(), recvcounts, displs, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
-    double compute_time = std::chrono::duration_cast<std::chrono::duration<double>>(
-                    std::chrono::steady_clock::now() - compute_start).count();
-    double total_time = std::chrono::duration_cast<std::chrono::duration<double>>(
-                    std::chrono::steady_clock::now() - init_start).count();
+    double compute_time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - compute_start).count();
+    double total_time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - init_start).count();
     if (pid == 0) {
         std::cout << "Computation time (sec): " << std::fixed << std::setprecision(10) << compute_time << "\n";
         std::cout << "Total time (sec): " << std::fixed << std::setprecision(10) << total_time << "\n";

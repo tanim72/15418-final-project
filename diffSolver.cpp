@@ -37,7 +37,8 @@ void thomasSolve(const vector<double>& a,
 int main(int argc, char** argv) {
     const auto init_start = std::chrono::steady_clock::now();
     MPI_Init(&argc, &argv);
-    int pid, P;
+    int pid;
+    int P;
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);
     MPI_Comm_size(MPI_COMM_WORLD, &P);
 
@@ -58,18 +59,24 @@ int main(int argc, char** argv) {
         R.resize(N);
 
         // Main diagonal
-        for (int i = 0; i < N; ++i) fin >> B[i];
-
+        for (int i = 0; i < N; ++i) {
+            fin >> B[i];
+        }
         // Sub-diagonal 
         A.assign(N, 0.0);
-        for (int i = 1; i < N; ++i) fin >> A[i];
-
+        for (int i = 1; i < N; ++i) {
+            fin >> A[i];
+        }
         // Super-diagonal 
         C.assign(N, 0.0);
-        for (int i = 0; i < N-1; ++i) fin >> C[i];
+        for (int i = 0; i < N-1; ++i) {
+            fin >> C[i];
+        }
 
         // RHS (N entries)
-        for (int i = 0; i < N; ++i) fin >> R[i];
+        for (int i = 0; i < N; ++i) {
+            fin >> R[i];
+        }
 
         if (N % P != 0)
             throw std::runtime_error("N must be divisible by number of processes");
@@ -104,12 +111,12 @@ int main(int argc, char** argv) {
         gamma[i] = (r[i] - a[i] * gamma[i-1]) / denom;
     }
 
-    xR[M-1]  = gamma[M-1];
+    xR[M-1] = gamma[M-1];
     xLH[M-1] = -omega[M-1];
     xUH[M-1] = a[M-1] / b[M-1];
     for (int i = M-2; i >= 0; --i) {
-        xR[i]  = gamma[i] - omega[i]  * xR[i+1];
-        xLH[i] = -omega[i]          * xLH[i+1];
+        xR[i] = gamma[i] - omega[i] * xR[i+1];
+        xLH[i] = -omega[i] * xLH[i+1];
         double denom = b[i] - c[i] * xUH[i+1];
         xUH[i] = -a[i] / denom;
     }
@@ -117,27 +124,32 @@ int main(int argc, char** argv) {
     for (int i = 1; i < M; ++i) {
         xUH[i] = -xUH[i] * xUH[i-1];
     }
-
-    double uhc = 0.0, lhc = 0.0;
+    double uhc = 0.0;
+    double lhc = 0.0;
 
     if (P > 1) {
         // Build & solve reduced system via log2P Sendrecv passes 
-        int log2P = 0; while ((1<<log2P) < P) ++log2P;
+        int log2P = 0; 
+        while ((1<<log2P) < P) ++log2P;
         int total = 8 * (1<<log2P);
         vector<double> out(total, 0.0);
 
         // pack 8 values for each process
-        out[0] = -1.0;      out[1] = xUH[0];
-        out[2] = xLH[0];    out[3] = -xR[0];
-        out[4] = xUH[M-1];  out[5] = xLH[M-1];
-        out[6] = -1.0;      out[7] = -xR[M-1];
+        out[0] = -1.0;      
+        out[1] = xUH[0];
+        out[2] = xLH[0];    
+        out[3] = -xR[0];
+        out[4] = xUH[M-1];  
+        out[5] = xLH[M-1];
+        out[6] = -1.0;      
+        out[7] = -xR[M-1];
 
         for (int step = 0; step < log2P; ++step) {
             int chunk = 8 * (1<<step);
             int left  = (pid - (1<<step) + P) % P;
-            int right = (pid + (1<<step))       % P;
+            int right = (pid + (1<<step)) % P;
             MPI_Sendrecv(
-                out.data(),       chunk, MPI_DOUBLE, left,  0,
+                out.data(), chunk, MPI_DOUBLE, left,  0,
                 out.data()+chunk, chunk, MPI_DOUBLE, right, 0,
                 MPI_COMM_WORLD, MPI_STATUS_IGNORE
             );
@@ -158,36 +170,31 @@ int main(int argc, char** argv) {
         vector<double> coeffs;
         thomasSolve(ra, rb, rc, rr, coeffs);
 
-        if (pid > 0)   uhc = coeffs[2*pid - 2];
+        if (pid > 0) uhc = coeffs[2*pid - 2];
         if (pid < P-1) lhc = coeffs[2*pid - 1];
     }
 
     // Gather the solution
     vector<double> xloc(M);
-    for (int i = 0; i < M; ++i)
+    for (int i = 0; i < M; ++i) {
         xloc[i] = xR[i] + uhc * xUH[i] + lhc * xLH[i];
+    }
 
     vector<double> X;
     if (pid == 0) X.resize(N);
-    MPI_Gather(xloc.data(), M, MPI_DOUBLE,
-               X.data(),    M, MPI_DOUBLE,
-               0, MPI_COMM_WORLD);
+    MPI_Gather(xloc.data(), M, MPI_DOUBLE, X.data(), M, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
-    double compute_time = std::chrono::duration_cast<std::chrono::duration<double>>(
-                std::chrono::steady_clock::now() - compute_start).count();
-
-
-    double total_time = std::chrono::duration_cast<std::chrono::duration<double>>(
-                std::chrono::steady_clock::now() - init_start).count();
-
+    double compute_time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - compute_start).count();
+    double total_time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - init_start).count();
 
     if (pid == 0) {
         std::cout << "Computation time (sec): " << std::fixed << std::setprecision(10) << compute_time << "\n";
         std::cout << "Total time (sec): " << std::fixed << std::setprecision(10) << total_time << "\n";
         // comment out below for large N
         std::cout << "Solution x:\n";
-        for (int i = 0; i < N; ++i)
+        for (int i = 0; i < N; ++i){
             std::cout << X[i] << (i+1==N? "\n":" ");
+        }
     }
 
     MPI_Finalize();

@@ -102,7 +102,6 @@ int main(int argc, char* argv[]) {
     auto init = chrono::steady_clock::now();
     string input_file;
     int num_threads = 0;
-
     int opt;
     while ((opt = getopt(argc, argv, "f:n:")) != -1) {
         switch (opt) {
@@ -137,12 +136,20 @@ int main(int argc, char* argv[]) {
     vector<double> global_a(N), global_b(N), global_c(N), global_d(N), global_x(N);
 
     // Read diagonals and RHS
-    for (int i = 0; i < N; i++) fin >> global_b[i];
+    for (int i = 0; i < N; i++) {
+        fin >> global_b[i];
+    }
     global_a[0] = 0.0;
-    for (int i = 1; i < N; i++) fin >> global_a[i];
-    for (int i = 0; i < N-1; i++) fin >> global_c[i];
+    for (int i = 1; i < N; i++) {
+        fin >> global_a[i];
+    }
+    for (int i = 0; i < N-1; i++) {
+        fin >> global_c[i];
+    } 
     global_c[N-1] = 0.0;
-    for (int i = 0; i < N; i++) fin >> global_d[i];
+    for (int i = 0; i < N; i++) {
+        fin >> global_d[i];
+    }
     fin.close();
 
     cout << "Running with " << num_threads << " threads" << endl;
@@ -150,10 +157,11 @@ int main(int argc, char* argv[]) {
 
     // Partition the work
     vector<int> chunk_sizes(num_threads), start_indices(num_threads);
-    int base = N / num_threads, rem = N % num_threads;
+    int base = N / num_threads;
+    int rem = N % num_threads;
     int cur = 0;
     for (int i = 0; i < num_threads; i++) {
-        chunk_sizes[i]   = base + (i < rem ? 1 : 0);
+        chunk_sizes[i] = base + (i < rem ? 1 : 0);
         start_indices[i] = cur;
         cur += chunk_sizes[i];
     }
@@ -163,9 +171,9 @@ int main(int argc, char* argv[]) {
 
     #pragma omp parallel
     {
-        int tid       = omp_get_thread_num();
+        int tid = omp_get_thread_num();
         int start_idx = start_indices[tid];
-        int m         = chunk_sizes[tid];
+        int m = chunk_sizes[tid];
 
         vector<double> local_a(m), local_b(m), local_c(m), local_d(m);
         for (int i = 0; i < m; i++) {
@@ -208,7 +216,8 @@ int main(int argc, char* argv[]) {
 
             // building reduced system
             for (int i = 0; i < num_threads; i++) {
-                int e1 = 2*i, e2 = 2*i+1;
+                int e1 = 2*i;
+                int e2 = 2*i+1;
                 
                 // Prefetch next coefficients
                 if (i + 1 < num_threads) {
@@ -225,13 +234,14 @@ int main(int argc, char* argv[]) {
             // link the boundaries
             for (int i=1; i<num_threads; ++i) {
                 int prev = 2*i-1, nxt=2*i;
-                rc[prev]  = -ra[nxt];
-                ra[nxt]   = -rc[prev];
+                rc[prev] = -ra[nxt];
+                ra[nxt] = -rc[prev];
             }
             standardThomasSolver(R, ra, rb, rc, rd);
             // put back values
             for (int i=0; i<num_threads; ++i) {
-                int s = start_indices[i], e = s+chunk_sizes[i]-1;
+                int s = start_indices[i];
+                int e = s+chunk_sizes[i]-1;
                 global_x[s] = rd[2*i];
                 global_x[e] = rd[2*i+1];
             }
@@ -239,7 +249,8 @@ int main(int argc, char* argv[]) {
         #pragma omp barrier
 
         int s = start_idx;
-        double d0 = global_x[s], dN = global_x[s+m-1];
+        double d0 = global_x[s];
+        double dN = global_x[s+m-1];
         for (int i = 1; i < m-1; i++) {
             // Prefetch next interior values
             if (i + 2 < m - 1) {

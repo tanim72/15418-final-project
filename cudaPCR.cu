@@ -24,15 +24,15 @@ __global__ void pcr_stride_kernel(
     const float* __restrict__ b_in,
     const float* __restrict__ c_in,
     const float* __restrict__ d_in,
-    float*       __restrict__ a_out,
-    float*       __restrict__ b_out,
-    float*       __restrict__ c_out,
-    float*       __restrict__ d_out)
+    float* __restrict__ a_out,
+    float* __restrict__ b_out,
+    float* __restrict__ c_out,
+    float* __restrict__ d_out)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= M * N) return;
     int system = gid / N;
-    int i   = gid % N;
+    int i = gid % N;
     int base = system * N;
 
     float ai = a_in[base + i];
@@ -40,7 +40,8 @@ __global__ void pcr_stride_kernel(
     float ci = c_in[base + i];
     float di = d_in[base + i];
 
-    float alpha = 0.f, gamma = 0.f;
+    float alpha = 0.f;
+    float gamma = 0.f;
     if (i >= stride) {
         float bL = b_in[base + i - stride];
         alpha = - ai / bL;
@@ -90,23 +91,28 @@ int main(int argc, char** argv) {
     size_t total = size_t(M) * N;
     size_t bytes = total * sizeof(float);
 
-    std::vector<float> h_a(total), h_b(total),
-                       h_c(total), h_d(total),
-                       h_x(total, 0.f);
+    std::vector<float> h_a(total), h_b(total), h_c(total), h_d(total), h_x(total, 0.f);
 
     for (int system = 0; system < M; ++system) {
       int base = system * N;
-      for (int i = 0; i < N; ++i) fin >> h_b[base + i]; // main diagonal
+      for (int i = 0; i < N; ++i) {
+        fin >> h_b[base + i]; // main diagonal
+      }
       h_a[base + 0] = 0.f;
-      for (int i = 1; i < N; ++i) fin >> h_a[base + i]; // sub-diagonal
-      for (int i = 0; i < N-1; ++i) fin >> h_c[base + i]; // super-diagonal
+      for (int i = 1; i < N; ++i) {
+        fin >> h_a[base + i]; // sub-diagonal
+      }
+      for (int i = 0; i < N-1; ++i) {
+        fin >> h_c[base + i]; // super-diagonal
+      }
       h_c[base + N-1] = 0.f;
-      for (int i = 0; i < N; ++i) fin >> h_d[base + i]; // right-hand side
+      for (int i = 0; i < N; ++i) {
+        fin >> h_d[base + i]; // right-hand side
+      }
     }
 
-    float *d_a1, *d_b1, *d_c1, *d_d1,
-          *d_a2, *d_b2, *d_c2, *d_d2,
-          *d_x;
+    float *d_a1, *d_b1, *d_c1, *d_d1, *d_a2, *d_b2, *d_c2, *d_d2, *d_x;
+
     CUDA_CHECK(cudaMalloc(&d_a1, bytes));
     CUDA_CHECK(cudaMalloc(&d_b1, bytes));
     CUDA_CHECK(cudaMalloc(&d_c1, bytes));
@@ -127,8 +133,14 @@ int main(int argc, char** argv) {
     dim3 grid(numBlocks), block(TPB);
 
     // PCR forward‐reduction - we use one kernel per stride
-    float *a_in=d_a1, *b_in=d_b1, *c_in=d_c1, *d_in=d_d1;
-    float *a_out=d_a2,*b_out=d_b2,*c_out=d_c2,*d_out=d_d2;
+    float *a_in=d_a1;
+    float *b_in=d_b1;
+    float *c_in=d_c1;
+    float *d_in=d_d1;
+    float *a_out=d_a2;
+    float *b_out=d_b2;
+    float *c_out=d_c2;
+    float *d_out=d_d2;
     
     for (int stride = 1; stride < N; stride <<= 1) {
       pcr_stride_kernel
@@ -154,23 +166,28 @@ int main(int argc, char** argv) {
     CUDA_CHECK(cudaMemcpy(h_x.data(), d_x, bytes, cudaMemcpyDeviceToHost));
     double t1 = CycleTimer::currentSeconds();
 
-    std::cout<<"PCR time:        "<<(t1-t0)   <<" s\n";
-    std::cout<<"Total program:   "<<(CycleTimer::currentSeconds()-t0_all)<<" s\n";
+    std::cout<<"PCR time: "<<(t1-t0) <<" s\n";
+    std::cout<<"Total program: "<<(CycleTimer::currentSeconds()-t0_all)<<" s\n";
 
     // print result (comment out for large N)
     for (int system=0; system<M; ++system) {
       int base = system * N;
       for (int i=0; i<N; ++i) {
-      if (i == 0) std::cout << "x" << system << " = ";
-      std::cout << h_x[base+i] << " ";
+        if (i == 0) std::cout << "x" << system << " = ";
+        std::cout << h_x[base+i] << " ";
       }
       std::cout << "\n";
     }
 
-
     // cleanup
-    cudaFree(d_a1); cudaFree(d_b1); cudaFree(d_c1); cudaFree(d_d1);
-    cudaFree(d_a2); cudaFree(d_b2); cudaFree(d_c2); cudaFree(d_d2);
+    cudaFree(d_a1); 
+    cudaFree(d_b1); 
+    cudaFree(d_c1); 
+    cudaFree(d_d1);
+    cudaFree(d_a2); 
+    cudaFree(d_b2); 
+    cudaFree(d_c2); 
+    cudaFree(d_d2);
     cudaFree(d_x);
 
     return 0;

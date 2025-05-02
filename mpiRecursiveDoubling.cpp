@@ -30,9 +30,12 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
         l[i] = d[i] = y[i] = 0.0;
     }
     
-    double R[2][2], U[2][2];
-    R[0][0] = 1.0; R[0][1] = 0.0;
-    R[1][0] = 0.0; R[1][1] = 1.0;
+    double R[2][2];
+    double U[2][2];
+    R[0][0] = 1.0;
+    R[0][1] = 0.0;
+    R[1][0] = 0.0;
+    R[1][1] = 1.0;
     
     
     int localRows = N / nproc;
@@ -48,17 +51,13 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
         R[0][1] = a[offset] * R[0][1];
         R[0][0] = tmpVal;
         
-        
         for(i = 1; i < localRows; i++){
             int idx = i + offset;
             double a_val = a[idx];
             double mult = b[idx - 1] * c[idx - 1];
             
-            
             double tmp0 = a_val * R[0][0] - mult * R[1][0];
             double tmp1 = a_val * R[0][1] - mult * R[1][1];
-            
-          
             
             R[1][0] = R[0][0];
             R[1][1] = R[0][1];
@@ -73,7 +72,6 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
                 R[1][0] /= scale;
                 R[1][1] /= scale;
             }
-
         }
     } else {
         // For processes other than 0
@@ -82,12 +80,9 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
             if (idx > 0) {  
                 double a_val = a[idx];
                 double mult = b[idx - 1] * c[idx - 1];
-                
-                
+            
                 double tmp0 = a_val * R[0][0] - mult * R[1][0];
                 double tmp1 = a_val * R[0][1] - mult * R[1][1];
-                
-               
                 
                 R[1][0] = R[0][0]; 
                 R[1][1] = R[0][1];  
@@ -109,8 +104,7 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
     
     
     // Apply scailing 
-    double max_val = std::max(std::max(std::abs(R[0][0]), std::abs(R[0][1])), 
-                             std::max(std::abs(R[1][0]), std::abs(R[1][1])));
+    double max_val = std::max(std::max(std::abs(R[0][0]), std::abs(R[0][1])), std::max(std::abs(R[1][0]), std::abs(R[1][1])));
     
     if (max_val > 1e10 || max_val < 1e-10) {
         double scale = (max_val > 1.0) ? 1.0/max_val : 1.0;
@@ -124,16 +118,13 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
   
     int stages = (int)log2(nproc);
     for(i = 0; i < stages; i++){
-        
         int partner = pid + (1<<i);
         if (partner < nproc) {
             MPI_Send(&R[0][0], 4, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
         }
-        
         partner = pid - (1<<i);
         if (partner >= 0) {
             MPI_Recv(&U[0][0], 4, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            
             
             double tmp0 = R[0][0]*U[0][0] + R[0][1]*U[1][0];
             R[0][1] = R[0][0]*U[0][1] + R[0][1]*U[1][1];
@@ -142,11 +133,7 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
             R[1][1] = R[1][0]*U[0][1] + R[1][1]*U[1][1];
             R[1][0] = tmp0;
             
-           
-            
-            
-            max_val = std::max(std::max(std::abs(R[0][0]), std::abs(R[0][1])), 
-                              std::max(std::abs(R[1][0]), std::abs(R[1][1])));
+            max_val = std::max(std::max(std::abs(R[0][0]), std::abs(R[0][1])), std::max(std::abs(R[1][0]), std::abs(R[1][1])));
             
             if (max_val > 1e10 || max_val < 1e-10) {
                 double scale = (max_val > 1.0) ? 1.0/max_val : 1.0;
@@ -184,7 +171,6 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
         if (std::abs(denom) < EPSILON) {
             denom = (denom >= 0) ? EPSILON : -EPSILON;
         }
-        
         d[offset + localRows - 1] = (R[0][0] + R[0][1]) / denom;
         
     }
@@ -204,10 +190,6 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
             }
             
             d[idx] = a[idx] - l[idx] * c[idx - 1];
-            
-            
-            if (std::isnan(l[idx]) || std::isnan(d[idx])) {
-            }
         }
         
         int idx = offset + localRows - 1;
@@ -229,9 +211,6 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
             }
             
             d[idx] = a[idx] - l[idx] * c[idx - 1];
-            
-            
-          
         }
         
         int idx = offset + localRows - 1;
@@ -270,11 +249,6 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
         
         for (i = 1; i < N; i++){
             y[i] = q[i] - l[i] * y[i - 1];
-            
-            if (i % 100 == 0 || std::isnan(y[i])) {
-            }
-            
-            
         }
         
         // Backward substitution
@@ -291,9 +265,7 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
             } else {
                 x[i] = (y[i] - c[i] * x[i + 1]) / d[i];
             }
-            
         }
-        
     }
     
     delete[] l;
@@ -305,14 +277,18 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
 
 int main(int argc, char *argv[]) {
     const auto start = std::chrono::steady_clock::now();
-    int pid, nproc;
+    int pid;
+    int nproc;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     
-    
     int N; 
-    double *a, *b, *c, *q, *x;
+    double *a;
+    double *b;
+    double *c;
+    double *q;
+    double *x;
     
     if(argc < 2) {
         if(pid == 0)
@@ -344,7 +320,6 @@ int main(int argc, char *argv[]) {
             printf("WARNING: Number of processes (%d) is not a power of 2\n", nproc);
         }
         
-        
         a = new double[N];
         b = new double[N];
         c = new double[N];
@@ -352,28 +327,22 @@ int main(int argc, char *argv[]) {
         
         for (int i = 0; i < N; i++) {
             fin >> a[i];
-           
         }
         
         for (int i = 0; i < N - 1; i++) {
             fin >> b[i];
-            
         }
         b[N - 1] = 0.0;  // dump
         
         for (int i = 0; i < N - 1; i++) {
             fin >> c[i];
-           
         }
         c[N - 1] = 0.0;  // dump
         
         for (int i = 0; i < N; i++) {
             fin >> q[i];
-            
         }
         fin.close();
-        
-       
     }
 
     
@@ -397,7 +366,6 @@ int main(int argc, char *argv[]) {
     MPI_Bcast(q, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
    // printf("Process %d: Received all data via broadcast\n", pid);
-    
     const auto compute_start = std::chrono::steady_clock::now();
 
     x = new double[N];
@@ -407,11 +375,8 @@ int main(int argc, char *argv[]) {
     
     ThomasAlgorithm_P(pid, nproc, N, a, b, c, q, x);
 
-    double compute_time = std::chrono::duration_cast<std::chrono::duration<double>>(
-        std::chrono::steady_clock::now() - compute_start).count();
-
-    double total_time = std::chrono::duration_cast<std::chrono::duration<double>>(
-            std::chrono::steady_clock::now() - start).count();
+    double compute_time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - compute_start).count();
+    double total_time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
 
     if (pid == 0) {
         std::cout << "Computation time (sec): " << std::fixed << std::setprecision(10) << compute_time << "\n";

@@ -31,16 +31,16 @@ void CR_main_kernel(
     const float* __restrict__ b_in,
     const float* __restrict__ c_in,
     const float* __restrict__ d_in,
-    float*       __restrict__ a_out,
-    float*       __restrict__ b_out,
-    float*       __restrict__ c_out,
-    float*       __restrict__ d_out)
+    float* __restrict__ a_out,
+    float* __restrict__ b_out,
+    float* __restrict__ c_out,
+    float* __restrict__ d_out)
 {
   int gid = blockIdx.x * blockDim.x + threadIdx.x;
   int total = M * N;
   if (gid >= total) return;
   int system = gid / N;
-  int i   = gid % N;
+  int i = gid % N;
   int base = system * N;
 
   float ai = a_in[gid];
@@ -75,7 +75,7 @@ void final_solve_kernel(
     int N, int M,
     const float* __restrict__ b_in,
     const float* __restrict__ d_in,
-    float*       __restrict__ x_out)
+    float* __restrict__ x_out)
 {
   // solve the last 1x1 systemtem
   int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -103,25 +103,29 @@ int main(int argc,char**argv) {
   size_t total = size_t(M)*N;
   size_t bytes = total * sizeof(float);
 
-  std::vector<float> h_a(total), h_b(total),
-                     h_c(total), h_d(total),
-                     h_x(total,0.0f);
+  std::vector<float> h_a(total), h_b(total), h_c(total), h_d(total), h_x(total,0.0f);
 
   // read input
   for (int system=0; system<M; ++system) {
     int base = system * N;
-    for (int i=0; i<N; ++i) fin >> h_b[base+i];
+    for (int i=0; i<N; ++i) {
+      fin >> h_b[base+i];
+    }
     h_a[base+0] = 0.0f;
-    for (int i=1; i<N; ++i) fin >> h_a[base+i];
-    for (int i=0; i<N-1; ++i) fin >> h_c[base+i];
+    for (int i=1; i<N; ++i){
+      fin >> h_a[base+i];
+    }
+    for (int i=0; i<N-1; ++i){
+      fin >> h_c[base+i];
+    }
     h_c[base+N-1] = 0.0f;
-    for (int i=0; i<N; ++i) fin >> h_d[base+i];
+    for (int i=0; i<N; ++i){
+      fin >> h_d[base+i];
+    }
   }
 
   // allocate device (double-buffer for CR)
-  float *a1, *b1, *c1, *d1,
-        *a2, *b2, *c2, *d2,
-        *dx;
+  float *a1, *b1, *c1, *d1, *a2, *b2, *c2, *d2, *dx;
 
   CUDA_CHECK(cudaMalloc(&a1,bytes));
   CUDA_CHECK(cudaMalloc(&b1,bytes));
@@ -143,8 +147,14 @@ int main(int argc,char**argv) {
   int numBlocks = (total + TPB-1)/TPB;
   dim3 grid(numBlocks), block(TPB);
 
-  float *ain=a1, *bin=b1, *cin=c1, *din=d1;
-  float *aout=a2,*bout=b2,*cout=c2,*dout=d2;
+  float *ain=a1;
+  float *bin=b1;
+  float *cin=c1;
+  float *din=d1;
+  float *aout=a2;
+  float *bout=b2;
+  float *cout=c2;
+  float *dout=d2;
 
   int levels = 0;
   while ((1<<levels) < N) ++levels;
@@ -176,22 +186,30 @@ int main(int argc,char**argv) {
   CUDA_CHECK(cudaMemcpy(h_x.data(),dx,bytes,cudaMemcpyDeviceToHost));
   double t1 = CycleTimer::currentSeconds();
 
-  std::cout<<"CR time:        "<<(t1-t0)<<" s\n";
-  std::cout<<"Total program:  "<<(CycleTimer::currentSeconds()-init)<<" s\n";
+  std::cout<<"CR time: "<<(t1-t0)<<" s\n";
+  std::cout<<"Total program: "<<(CycleTimer::currentSeconds()-init)<<" s\n";
 
   // print result (comment out for large N)
   for (int system=0; system<M; ++system) {
     int base = system * N;
     for (int i=0; i<N; ++i) {
-      if (i == 0) std::cout << "x" << system << " = ";
+      if (i == 0){
+        std::cout << "x" << system << " = ";
+      }
       std::cout << h_x[base+i] << " ";
     }
     std::cout << "\n";
   }
 
   // free everything 
-  cudaFree(a1); cudaFree(b1); cudaFree(c1); cudaFree(d1);
-  cudaFree(a2); cudaFree(b2); cudaFree(c2); cudaFree(d2);
+  cudaFree(a1);
+  cudaFree(b1);
+  cudaFree(c1);
+  cudaFree(d1);
+  cudaFree(a2);
+  cudaFree(b2);
+  cudaFree(c2);
+  cudaFree(d2);
   cudaFree(dx);
 
   return 0;

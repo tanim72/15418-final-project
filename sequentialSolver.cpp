@@ -22,7 +22,7 @@ vector<double> thomasSolver(int N,
         double denom = b[i] - a[i] * gamma[i - 1];
         if (i < N - 1)
             gamma[i] = c[i] / denom;
-       rho[i] = (d[i] - a[i] * rho[i - 1]) / denom;
+        rho[i] = (d[i] - a[i] * rho[i - 1]) / denom;
     }
 
     // Backward substitution

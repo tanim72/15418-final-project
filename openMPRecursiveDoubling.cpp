@@ -32,9 +32,8 @@ void ThomasAlgorithm_OMP(int N,
     {
         int tid = omp_get_thread_num();
 
-       
         int base = N / num_threads;
-        int rem  = N % num_threads;
+        int rem = N % num_threads;
         int localRows = (tid < rem ? base+1 : base);
         int offset = (tid < rem ? tid*(base+1) : rem*(base+1) + (tid-rem)*base);
 
@@ -42,7 +41,10 @@ void ThomasAlgorithm_OMP(int N,
         int prefetch_distance = 8; // can be tuned
 
         // stage 1: local R accumulation 
-        double R00=1.0, R01=0.0, R10=0.0, R11=1.0;
+        double R00=1.0;
+        double R01=0.0;
+        double R10=0.0;
+        double R11=1.0;
         for(int i = 0; i < localRows; ++i) {
             int idx = offset + i;
 
@@ -50,8 +52,10 @@ void ThomasAlgorithm_OMP(int N,
             double mult = (idx>0 ? b[idx-1]*c[idx-1] : 0.0);
             double tmp0 = aval*R00 - mult*R10;
             double tmp1 = aval*R01 - mult*R11;
-            R10=R00; R11=R01;
-            R00=tmp0; R01=tmp1;
+            R10=R00;
+            R11=R01;
+            R00=tmp0;
+            R01=tmp1;
 
             double sc = std::max({fabs(R00), fabs(R01), fabs(R10), fabs(R11)});
             if(sc>0){ R00/=sc; R01/=sc; R10/=sc; R11/=sc; }
@@ -125,8 +129,7 @@ void ThomasAlgorithm_OMP(int N,
                 y[i] = q[i] - l[i]*y[i-1];
             }
 
-            x[N-1] = y[N-1] /
-                (fabs(d[N-1])<EPS ? d[N-1]+(d[N-1]>=0?EPS:-EPS) : d[N-1]);
+            x[N-1] = y[N-1] / (fabs(d[N-1])<EPS ? d[N-1]+(d[N-1]>=0?EPS:-EPS) : d[N-1]);
             for(int i=N-2;i>=0;--i){
                 double dm = fabs(d[i])<EPS ? d[i]+(d[i]>=0?EPS:-EPS) : d[i];
                 x[i] = (y[i] - c[i]*x[i+1]) / dm;
@@ -159,22 +162,29 @@ int main(int argc, char* argv[]) {
     }
     int N; fin>>N;
     std::vector<double> a(N), b(N), c(N), q(N), x(N,0.0);
-    for(int i=0;i<N;++i) fin>>a[i];
-    for(int i=0;i<N-1;++i) fin>>b[i]; b[N-1]=0;
-    for(int i=0;i<N-1;++i) fin>>c[i]; c[N-1]=0;
-    for(int i=0;i<N;++i) fin>>q[i];
+    for(int i=0;i<N;++i) {
+        fin>>a[i];
+    }
+    for(int i=0;i<N-1;++i) {
+        fin>>b[i];
+    }
+    b[N-1]=0;
+    for(int i=0;i<N-1;++i) {
+        fin>>c[i];
+    } 
+    c[N-1]=0;
+    for(int i=0;i<N;++i) {
+        fin>>q[i];
+    }
     fin.close();
 
     auto t0 = std::chrono::steady_clock::now();
     ThomasAlgorithm_OMP(N, a.data(), b.data(), c.data(), q.data(), x.data(), num_threads);
-    double t = std::chrono::duration<double>(
-            std::chrono::steady_clock::now() - t0).count();
-    double total_time = std::chrono::duration<double>(
-            std::chrono::steady_clock::now() - tinit).count();
+    double t = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    double total_time = std::chrono::duration<double>(std::chrono::steady_clock::now() - tinit).count();
 
     std::cout << "Computation time (sec): "
               << std::fixed << std::setprecision(10) << t << "\n";
-    
     std::cout << "Total time (sec): "
               << std::fixed << std::setprecision(10) << total_time << "\n";
     std::cout << "Solution x:\n";

@@ -33,7 +33,7 @@ __global__ void hybrid_solve_multi_tiled(int N,
                                          const float* __restrict__ b_in,
                                          const float* __restrict__ c_in,
                                          const float* __restrict__ d_in,
-                                         float*       __restrict__ x_out)
+                                         float* __restrict__ x_out)
 {
     extern __shared__ float s[];
     float* sa = s + 0*TILE;
@@ -135,10 +135,7 @@ __global__ void hybrid_solve_multi_tiled(int N,
     // CR backward
     for (int lvl = CR_LEVELS-1; lvl >= 0; --lvl) {
         int stride = 1 << lvl;
-        if (row < N
-            && (row & (2*stride - 1)) == stride
-            && tid >= stride
-            && tid + stride < TILE)
+        if (row < N && (row & (2*stride - 1)) == stride && tid >= stride && tid + stride < TILE)
         {
             float xim = sx[tid - stride];
             float xip = ((row + stride < N) ? sx[tid + stride] : 0.0f);
@@ -160,24 +157,32 @@ int main(int argc,char**argv)
       return 1;
     }
     std::ifstream fin(argv[1]);
-    if (!fin) { perror("open"); return 1; }
+    if (!fin) { 
+        perror("open"); return 1; 
+    }
 
     int M,N;  
     fin>>M>>N;
-    if ((N & (N-1))!=0)
+    if ((N & (N-1))!=0) {
         fprintf(stderr,"Warning: N=%d not power-of-two, but it will still work.\n",N);
-
-    std::vector<float> h_a(M*N), h_b(M*N),
-                       h_c(M*N), h_d(M*N),
-                       h_x(M*N,0.f);
+    }
+    std::vector<float> h_a(M*N), h_b(M*N), h_c(M*N), h_d(M*N), h_x(M*N,0.f);
 
     for (int system=0; system<M; ++system) {
-        for (int i=0; i<N; ++i) fin>>h_b[system*N+i];
+        for (int i=0; i<N; ++i) {
+            fin>>h_b[system*N+i];
+        }
         h_a[system*N+0] = 0.f;
-        for (int i=1; i<N; ++i) fin>>h_a[system*N+i];
-        for (int i=0; i<N-1; ++i) fin>>h_c[system*N+i];
+        for (int i=1; i<N; ++i) {
+            fin>>h_a[system*N+i];
+        }
+        for (int i=0; i<N-1; ++i) {
+            fin>>h_c[system*N+i];
+        }
         h_c[system*N+N-1] = 0.f;
-        for (int i=0; i<N; ++i) fin>>h_d[system*N+i];
+        for (int i=0; i<N; ++i) {
+            fin>>h_d[system*N+i];
+        }
     }
 
     float *d_a,*d_b,*d_c,*d_d,*d_x;
@@ -209,20 +214,17 @@ int main(int argc,char**argv)
 
     double t1 = CycleTimer::currentSeconds();
     std::cout<<"Computation time: "<<(t1-t0)<<" s\n";
-    std::cout<<"Total time:       "<<(t1-t0_all)<<" s\n";
-
+    std::cout<<"Total time: "<<(t1-t0_all)<<" s\n";
 
      // print result (comment out for large N)
     for (int system=0; system<M; ++system) {
         int base = system * N;
         for (int i=0; i<N; ++i) {
-        if (i == 0) std::cout << "x" << system << " = ";
-        std::cout << h_x[base+i] << " ";
+            if (i == 0) std::cout << "x" << system << " = ";
+            std::cout << h_x[base+i] << " ";
         }
         std::cout << "\n";
     }
-
-
 
     // free device memory
     cudaFree(d_a); cudaFree(d_b); cudaFree(d_c);
