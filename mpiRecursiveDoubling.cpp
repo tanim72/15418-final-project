@@ -41,7 +41,7 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
     // Stage 1: Compute local coefficients.
     
     if (pid == 0) {
-        // Special case for first row on process 0
+        // Special case for first row (pid=0)
         double tmpVal = a[offset] * R[0][0];
         R[1][0] = R[0][0];  
         R[1][1] = R[0][1]; 
@@ -49,7 +49,6 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
         R[0][0] = tmpVal;
         
         
-        // Process remaining rows
         for(i = 1; i < localRows; i++){
             int idx = i + offset;
             double a_val = a[idx];
@@ -247,7 +246,7 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
     }
     
     if (pid > 0)
-        d[offset - 1] = 0.0; // adjust boundary condition
+        d[offset - 1] = 0.0; // this is the boundary condition
     
     
     // Stage 5: Distribute the full d and l arrays.
@@ -305,22 +304,19 @@ void ThomasAlgorithm_P(int pid, int nproc, int N, double *a, double *b, double *
 
 
 int main(int argc, char *argv[]) {
+    const auto start = std::chrono::steady_clock::now();
     int pid, nproc;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     
-    if (pid == 0) {
-        printf("Starting MPI Parallel Thomas Algorithm Solver with %d processes\n", nproc);
-    }
     
-    int N; // system size read from file
+    int N; 
     double *a, *b, *c, *q, *x;
     
-    // Make sure an input file was specified.
     if(argc < 2) {
         if(pid == 0)
-            cerr << "Usage: " << argv[0] << " <input_file>" << endl;
+            cout << "Usage: mpirun -np <number_of_processes> " << argv[0] << " <input_file>" << endl;
         MPI_Finalize();
         return 1;
     }
@@ -347,6 +343,7 @@ int main(int argc, char *argv[]) {
         if ((1 << log2_p) != nproc) {
             printf("WARNING: Number of processes (%d) is not a power of 2\n", nproc);
         }
+        
         
         a = new double[N];
         b = new double[N];
@@ -383,7 +380,7 @@ int main(int argc, char *argv[]) {
     
     // Broadcast the system size to all processes
     MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    printf("Process %d: Received N = %d\n", pid, N);
+    //printf("Process %d: Received N = %d\n", pid, N);
     
     // All processes allocate arrays
     if(pid != 0) {
@@ -399,7 +396,7 @@ int main(int argc, char *argv[]) {
     MPI_Bcast(c, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(q, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
-    printf("Process %d: Received all data via broadcast\n", pid);
+   // printf("Process %d: Received all data via broadcast\n", pid);
     
     const auto compute_start = std::chrono::steady_clock::now();
 
@@ -412,8 +409,14 @@ int main(int argc, char *argv[]) {
 
     double compute_time = std::chrono::duration_cast<std::chrono::duration<double>>(
         std::chrono::steady_clock::now() - compute_start).count();
-    if (pid == 0)
+
+    double total_time = std::chrono::duration_cast<std::chrono::duration<double>>(
+            std::chrono::steady_clock::now() - start).count();
+
+    if (pid == 0) {
         std::cout << "Computation time (sec): " << std::fixed << std::setprecision(10) << compute_time << "\n";
+        std::cout << "Total time (sec): " << std::fixed << std::setprecision(10) << total_time << "\n";
+    }
     
     // comment out if you don't want to print it
     if (pid == 0) {
