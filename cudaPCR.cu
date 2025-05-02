@@ -84,9 +84,7 @@ int main(int argc, char** argv) {
     int M, N;
     fin >> M >> N;
     if ((N & (N - 1)) != 0) {
-      fprintf(stderr,
-        "Warning: N=%d is not power-of-two. PCR still works but likely suboptimal.\n",
-        N);
+      fprintf(stderr, "Warning: N=%d is not power-of-two. PCR still works but likely suboptimal.\n", N);
     }
 
     size_t total = size_t(M) * N;
