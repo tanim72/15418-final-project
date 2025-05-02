@@ -1,5 +1,5 @@
 
-
+// openMP Brugnano implementation of Thomas algorithm
 #include <iostream>
 #include <vector>
 #include <fstream>
