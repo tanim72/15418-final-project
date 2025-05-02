@@ -17,7 +17,6 @@
     }                                                                    \
   } while (0)
 
-// ──────────────────────────────────────────────────────────────────
 
 #define CR_LEVELS 1                 // CR_LEVELS will keep increasing by a factor of 2
 constexpr int TPB = 256;            // threads per block
