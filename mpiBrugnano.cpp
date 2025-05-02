@@ -12,15 +12,7 @@
 
 using namespace std;
 
-/**
- * Local Modified Thomas Algorithm 
- * 
- * @param m Size of the local system (number of equations per process).
- * @param a Sub-diagonal of size m
- * @param b Main diagonal of size m
- * @param c Super-diagonal of size m
- * @param d Right-hand side (RHS) vector of size m
- */
+//  Local Modified Thomas Algorithm
 void modifiedThomasAlgorithm(int m, vector<double>& a, vector<double>& b, vector<double>& c, vector<double>& d) {
     // Normalize first row
     d[0] = d[0] / b[0];
@@ -34,7 +26,9 @@ void modifiedThomasAlgorithm(int m, vector<double>& a, vector<double>& b, vector
     
     // Forward elimination 
     for (int i = 2; i < m; i++) {
-        double r = 1.0 / (b[i] - a[i] * c[i-1]);
+        double denom = b[i] - a[i] * c[i-1];
+        if (denom == 0) denom = 1e-10; // Avoid division by zero
+        double r = 1.0 / denom;
         d[i] = r * (d[i] - a[i] * d[i-1]);
         c[i] = r * c[i];
         a[i] = -r * (a[i] * a[i-1]);
@@ -57,7 +51,6 @@ void modifiedThomasAlgorithm(int m, vector<double>& a, vector<double>& b, vector
 }
 
 // Standard Thomas algorithm for solving the reduced system
-
 void standardThomasSolver(int size, vector<double>& a, vector<double>& b, vector<double>& c, vector<double>& d) {
     vector<double> gamma(size, 0.0);
     
@@ -80,7 +73,6 @@ void standardThomasSolver(int size, vector<double>& a, vector<double>& b, vector
 }
 
 // Update the remaining unknowns after solving the reduced system
-
 void updateSolution(int m, const vector<double>& a, const vector<double>& c, vector<double>& d, double d_first, double d_last) {
     for (int i = 1; i < m-1; i++) {
         d[i] = d[i] - a[i] * d_first - c[i] * d_last;
@@ -89,6 +81,7 @@ void updateSolution(int m, const vector<double>& a, const vector<double>& c, vec
 
 
 int main(int argc, char* argv[]) {
+    const auto init_start = std::chrono::steady_clock::now();
     MPI_Init(&argc, &argv);
     
     int pid, size;
@@ -269,7 +262,6 @@ int main(int argc, char* argv[]) {
     local_d[0] = d_first;
     local_d[m-1] = d_last;
     
-    // Update  remaining solutions (d_2 to d_(m-1))
     updateSolution(m, local_a, local_c, local_d, d_first, d_last);
     
     // Gather all solutions back 
@@ -277,8 +269,12 @@ int main(int argc, char* argv[]) {
     
     double compute_time = std::chrono::duration_cast<std::chrono::duration<double>>(
                     std::chrono::steady_clock::now() - compute_start).count();
-    if (pid == 0)
+    double total_time = std::chrono::duration_cast<std::chrono::duration<double>>(
+                    std::chrono::steady_clock::now() - init_start).count();
+    if (pid == 0) {
         std::cout << "Computation time (sec): " << std::fixed << std::setprecision(10) << compute_time << "\n";
+        std::cout << "Total time (sec): " << std::fixed << std::setprecision(10) << total_time << "\n";
+    }
 
     // comment this out if you don't want to print it
     if (pid == 0) {
