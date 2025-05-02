@@ -1,4 +1,4 @@
-n = 10 # change "N" as you see fit
+n = 128000 # change "N" to whatever size is desired 
 
 # main diagonal
 b = [(100 + i) if i % 2 == 0 else (i + 93) for i in range(n)]
@@ -19,7 +19,7 @@ for i in range(1, n-1):
     d[i] = a[i] + b[i] + c[i]
 d[n-1] = a[n-1] + b[n-1]
 
-output_filename = f"inputs/test{n}x{n}_input.txt" # change this to your desired output filename
+output_filename = f"inputs/test{n}x{n}_input.txt" # output file name
 with open(output_filename, "w") as f:
     f.write(str(n) + "\n")
     f.write(" ".join(map(str, b)) + "\n")
