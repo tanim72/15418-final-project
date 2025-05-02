@@ -53,7 +53,7 @@ __global__ void pcr_stride_kernel(
     float anew = (i >= stride) ? alpha * a_in[base + i - stride] : 0.f;
     float cnew = (i + stride < N) ? gamma * c_in[base + i + stride] : 0.f;
     float bnew = bi + (i >= stride ? alpha * c_in[base + i - stride] : 0.f) + (i + stride < N ? gamma * a_in[base + i + stride] : 0.f);
-    float dnew = di + (i >= stride    ? alpha * d_in[base + i - stride] : 0.f) + (i + stride < N ? gamma * d_in[base + i + stride] : 0.f);
+    float dnew = di + (i >= stride ? alpha * d_in[base + i - stride] : 0.f) + (i + stride < N ? gamma * d_in[base + i + stride] : 0.f);
 
     a_out[base + i] = anew;
     b_out[base + i] = bnew;
