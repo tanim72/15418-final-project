@@ -1,8 +1,8 @@
 
+# THIS IS DEPRECATED CODE. 
+# THIS ASSUMES WE OUTPUT THE SOLUTION TO A FILE. WE DO NOT DO THAT ANYMORE AS THERE IS NO DISK SPACE.
+# WE DID VALIDATE THE OUTPUTS BY COMPARING THEM TO THE SEQUENTIAL SOLUTION FOR SMALLER SOLUTIONS.
 def validate_tridiagonal_solution(input_file, solver_output_file, tolerance=1e-7):
-    """
-    Validate a tridiagonal solver output by comparing it with the seqeuntial solution.
-    """
     tokens = []
     with open(input_file, 'r') as f:
         for line in f:
@@ -32,9 +32,6 @@ def validate_tridiagonal_solution(input_file, solver_output_file, tolerance=1e-7
     idx += N
 
     def thomas_solver(N, a, b, c, d):
-        """
-        Sequential Thomas algorithm as implemented in solverMatrix.cpp.
-        """
 
         c_star = [0.0] * N
         d_star = [0.0] * N
